@@ -9,6 +9,9 @@ from keras import *
 from utils import *
 import os
 import numpy
+import json
+
+jmodel = {} # json
 
 ##  DNN ==> JAVA
 def java_convert(model):
@@ -46,22 +49,33 @@ def java_convert(model):
   ##  Assumption: convolutional layer is of type '2d'
   ##  Assumption: channel is put behind
   for l in range(0, len(model.layers)):
+    jlayer = {} # json
     layer=model.layers[l]
     name=layer.name
+    jlayer['name'] = name # json
     _inp=layer.input
     _out=layer.output
+    jlayer['inp_sp'] = _inp.shape.as_list() # json
+    jlayer['out_sp'] = _out.shape.as_list() # json
     is_conv=is_conv_layer(layer)
+    jlayer['is_conv'] = is_conv # json
     if is_conv:
       is_padding = (layer.padding == 'same')
+      jlayer['is_padding'] = is_padding # json
     is_dense=is_dense_layer(layer)
+    jlayer['is_dense'] = is_dense # json
     is_activation=is_activation_layer(layer)
+    jlayer['is_activation'] = is_activation # json
     is_maxpooling=is_maxpooling_layer(layer)
+    jlayer['is_maxpooling'] = is_maxpooling # json
     is_flatten=is_flatten_layer(layer)
+    jlayer['is_flatten'] = is_flatten # json
     #is_dropout=False ##   we do not allow dropout
     #activation=''
     is_relu=False
     if is_conv or is_dense or is_activation: #activation=layer.activation
       is_relu=((get_activation(layer)).find('relu')>=0) ##  (not is_relu) ==> is_linear
+    jlayer['is_relu'] = is_relu # json
 
 
     prog+='\n    //  layer {0}: {1}\n'.format(l, name)
@@ -76,6 +90,8 @@ def java_convert(model):
 
       print (l, weights)
       sp=weights.shape
+      jlayer['w_sp'] = sp # json
+      jlayer['b_sp'] = biases.shape # json
       if is_conv:
         consts+='  // weights{0}: shape is {1}x{2}x{3}x{4}\n'.format(l, sp[0], sp[1], sp[2], sp[3])
         #fw = open('./data/weights{0}.txt'.format(l), 'a')
@@ -92,6 +108,7 @@ def java_convert(model):
     if is_conv:
       prog+='    double[][][] layer{3}=new double[{0}][{1}][{2}];\n'.format(_out.shape[1].value, _out.shape[2].value, _out.shape[3].value, l)
       kernel_size=layer.kernel_size ##  Assumption: kernels are of box shape with stride 1
+      jlayer['kernel_size'] = kernel_size # json
       if is_padding:
         prog+='    for(int i=0; i<{0}; i++)\n'.format(_out.shape[1].value-kernel_size[0]+1)
         prog+='      for(int j=0; j<{0}; j++)\n'.format(_out.shape[2].value-kernel_size[1]+1)
@@ -140,6 +157,7 @@ def java_convert(model):
       prog+='    }\n'
     elif is_maxpooling:
       pool_size=layer.pool_size ##  Assumption: maxpooling is of box shape with stride 1
+      jlayer['pool_size'] = pool_size # json
       prog+='    double[][][] layer{3}=new double[{0}][{1}][{2}];\n'.format(_out.shape[1].value, _out.shape[2].value, _out.shape[3].value, l)
       prog+='    for(int i=0; i<{0}; i++)\n'.format(_out.shape[1].value)
       prog+='      for(int j=0; j<{0}; j++)\n'.format(_out.shape[2].value)
@@ -175,6 +193,7 @@ def java_convert(model):
              prog+='    for(int i=0; i<{0}; i++)\n'.format(_out.shape[1].value)
              prog+='          layer{1}[i]=layer{0}[i]; // alala\n'.format(l-1,l)
 
+    jmodel[l] = jlayer
     if l==len(model.layers)-1: ## TODO
       prog+='    int ret=0;\n'
       prog+='    double res=-100000;\n'
@@ -380,6 +399,8 @@ def main():
   model = load_model(args.model[0])
   model.summary()
   java_convert(model)
+  with open('dnn.txt', 'w') as outfile:
+    json.dump(jmodel, outfile)
 
   #isl=model.layers[0].input.shape.as_list() ## input shape list
   #write_harness(isl)
