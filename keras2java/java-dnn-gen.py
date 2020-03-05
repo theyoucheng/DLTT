@@ -256,24 +256,47 @@ def java_convert(model):
 
   parameters = ""
 
-  for i in convs:
-      idata += "  public Double[][][][] weights{0};\n".format(i)
-      if not (parameters == ""):
+  jmodel["union"] = union
+  jmodel["nlayers"] = len(model.layers)
+  for i in union:
+    if i in convs:
+        idata += "  public Double[][][][] weights{0};\n".format(i)
+        if not (parameters == ""):
+          parameters += ','
+        parameters += "String weights{0}file".format(i)
+    if i in denses:
+        idata += "  public Double[][] weights{0};\n".format(i)
+        if not (parameters == ""):
+          parameters += ','
+        parameters += "String weights{0}file".format(i)
+  for i in union:
+    if i in convs:
+        idata += "  public Double[] biases{0};\n".format(i)
         parameters += ','
-      parameters += "String weights{0}file".format(i)
-  for i in denses:
-      idata += "  public Double[][] weights{0};\n".format(i)
-      if not (parameters == ""):
+        parameters += "String bias{0}file".format(i)
+    if i in denses:
+        idata += "  public Double[] biases{0};\n".format(i)
         parameters += ','
-      parameters += "String weights{0}file".format(i)
-  for i in convs:
-      idata += "  public Double[] biases{0};\n".format(i)
-      parameters += ','
-      parameters += "String bias{0}file".format(i)
-  for i in denses:
-      idata += "  public Double[] biases{0};\n".format(i)
-      parameters += ','
-      parameters += "String bias{0}file".format(i)
+        parameters += "String bias{0}file".format(i)
+
+  #for i in convs:
+  #    idata += "  public Double[][][][] weights{0};\n".format(i)
+  #    if not (parameters == ""):
+  #      parameters += ','
+  #    parameters += "String weights{0}file".format(i)
+  #for i in denses:
+  #    idata += "  public Double[][] weights{0};\n".format(i)
+  #    if not (parameters == ""):
+  #      parameters += ','
+  #    parameters += "String weights{0}file".format(i)
+  #for i in convs:
+  #    idata += "  public Double[] biases{0};\n".format(i)
+  #    parameters += ','
+  #    parameters += "String bias{0}file".format(i)
+  #for i in denses:
+  #    idata += "  public Double[] biases{0};\n".format(i)
+  #    parameters += ','
+  #    parameters += "String bias{0}file".format(i)
 
   idata += "\n"
   idata += "  public InternalData("+ parameters + ") throws NumberFormatException, IOException {\n"
