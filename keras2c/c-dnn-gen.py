@@ -160,12 +160,12 @@ def c_convert(model):
   prog+='}\n'
 
 
-  index = 3
-  with open('data/mnist_train_csv.txt') as f:
-    lines = [line.rstrip() for line in f]
-    inp = lines[index].split(',')
-    for i in range(0, len(inp)):
-        inp[i] = (int)(inp[i])
+  #index = 3
+  #with open('data/mnist_train_csv.txt') as f:
+  #  lines = [line.rstrip() for line in f]
+  #  inp = lines[index].split(',')
+  #  for i in range(0, len(inp)):
+  #      inp[i] = (int)(inp[i])
 
   prog+='int main(int argc, char* argv[]) {\n'
   if not fc:
