@@ -10,16 +10,17 @@ from utils import *
 import os
 import numpy
 import json
+from keras.applications.vgg16 import VGG16
 
 jmodel = {} # json
 
 ##  DNN ==> JAVA
-def java_convert(model):
+def java_convert(model, path=''):
 
 
   ## to store weights amd bias parameters
-  if not os.path.exists('./params'):
-    os.system('mkdir -p {0}'.format('./params'))
+  if not os.path.exists(path+'./params'):
+    os.system('mkdir -p {0}'.format(path+'params'))
 
   consts=''
   prog=''
@@ -96,14 +97,14 @@ def java_convert(model):
         consts+='  // weights{0}: shape is {1}x{2}x{3}x{4}\n'.format(l, sp[0], sp[1], sp[2], sp[3])
         #fw = open('./data/weights{0}.txt'.format(l), 'a')
         weights_rs=weights.reshape((sp[0]*sp[1]*sp[2], sp[3]))
-        numpy.savetxt('./params/weights{0}.txt'.format(l), weights_rs, fmt='%.18f', delimiter=',')
+        numpy.savetxt(path+'params/weights{0}.txt'.format(l), weights_rs, fmt='%.18f', delimiter=',')
       else:
         consts+='  // weights{0}: shape is {1}\n'.format(l, sp[0])
-        numpy.savetxt('./params/weights{0}.txt'.format(l), weights, fmt='%.18f', delimiter=',')
+        numpy.savetxt(path+'params/weights{0}.txt'.format(l), weights, fmt='%.18f', delimiter=',')
 
       ## biases
       consts+='  // biases{0}: shape is {1}\n'.format(l, len(biases))
-      numpy.savetxt('./params/biases{0}.txt'.format(l), biases, fmt='%.18f')
+      numpy.savetxt(path+'params/biases{0}.txt'.format(l), biases, fmt='%.18f')
 
     if is_conv:
       prog+='    double[][][] layer{3}=new double[{0}][{1}][{2}];\n'.format(_out.shape[1].value, _out.shape[2].value, _out.shape[3].value, l)
@@ -153,7 +154,10 @@ def java_convert(model):
       prog+='      int d0=i/{0};\n'.format(_inp.shape[2].value * _inp.shape[3].value)
       prog+='      int d1=(i%{0})/{1};\n'.format(_inp.shape[2].value * _inp.shape[3].value, _inp.shape[3].value)
       prog+='      int d2=i-d0*{0}-d1*{1};\n'.format((_inp.shape[2].value * _inp.shape[3].value), _inp.shape[3].value)
-      prog+='      layer{0}[i]=layer{1}[d0][d1][d2];\n'.format(l,l-1)
+      if l>0:
+        prog+='      layer{0}[i]=layer{1}[d0][d1][d2];\n'.format(l,l-1)
+      else:
+        prog+='      layer{0}[i]=input[d0][d1][d2];\n'.format(l,l-1)
       prog+='    }\n'
     elif is_maxpooling:
       pool_size=layer.pool_size ##  Assumption: maxpooling is of box shape with stride 1
@@ -228,7 +232,7 @@ def java_convert(model):
   dnn_class+='}\n'
 
 
-  dnn_file = open('DNNt.java', 'w')
+  dnn_file = open(path+'DNNt.java', 'w')
   dnn_file.write(dnn_class)
   dnn_file.close()
 
@@ -406,7 +410,7 @@ def java_convert(model):
   # The end of internal data
   idata += "}"
 
-  test_file = open('InternalData.java', 'w')
+  test_file = open(path+'InternalData.java', 'w')
   test_file.write(idata)
   test_file.close()
 
@@ -415,14 +419,26 @@ def main():
   parser=argparse.ArgumentParser(
           description='To convert a DNN model to JAVA program' )
 
-  parser.add_argument('model', action='store', nargs='+', help='The input neural network model (.h5)')
+  parser.add_argument('--model', action='store', nargs='+', default = 'None', help='The input neural network model (.h5)')
+  parser.add_argument("--vgg16-model", dest='vgg16', help="vgg16 model", action="store_true")
+  parser.add_argument("--outputs", dest="outs", default="outs",
+                    help="the output directory", metavar="DIR")
 
 
   args=parser.parse_args()
-  model = load_model(args.model[0])
+  if args.vgg16:
+      model = VGG16()
+  else:
+      model = load_model(args.model[0])
   model.summary()
-  java_convert(model)
-  with open('dnn.txt', 'w') as outfile:
+  path = args.outs
+  if not path[-1] == '/': path += '/'
+  if not os.path.exists(path):
+    os.system('mkdir -p {0}'.format(path))
+
+  java_convert(model, path)
+  
+  with open(path+'dnn.txt', 'w') as outfile:
     json.dump(jmodel, outfile)
 
   #isl=model.layers[0].input.shape.as_list() ## input shape list
