@@ -6,9 +6,10 @@ import keras
 from keras.models import *
 from keras.layers import * 
 from keras import *
+import os
 
 ##  DNN ==> C 
-def c_convert(model):
+def c_convert(model, path=''):
   prog=''
 
   ##  input, we assume that channel is in behind
@@ -179,7 +180,7 @@ def c_convert(model):
   prog+='}\n'
 
   #return prog
-  dnn_file = open('network.c', 'w')
+  dnn_file = open(path+'network.c', 'w')
   #dnn_file.write(prog)
   #dnn_file.close()
   #dnn_file = open('network.h', 'w')
@@ -248,18 +249,27 @@ def c_convert(model):
 
 def main():
   parser=argparse.ArgumentParser(
-          description='To convert a DNN model to the C program' )
+          description='To convert a DNN model to c program' )
 
-  parser.add_argument('model', action='store', nargs='+', help='The input neural network model (.h5)')
+  parser.add_argument('--model', action='store', nargs='+', default = 'None', help='The input neural network model (.h5)')
+  parser.add_argument("--vgg16-model", dest='vgg16', help="vgg16 model", action="store_true")
+  parser.add_argument("--outputs", dest="outs", default="outs",
+                    help="the output directory", metavar="DIR")
 
 
   args=parser.parse_args()
-  model = load_model(args.model[0])
+  if args.vgg16:
+      model = VGG16()
+  else:
+      model = load_model(args.model[0])
   model.summary()
-  c_convert(model)
+  path = args.outs
+  if not path[-1] == '/': path += '/'
+  if not os.path.exists(path):
+    os.system('mkdir -p {0}'.format(path))
 
-  #isl=model.layers[0].input.shape.as_list() ## input shape list
-  #write_harness(isl)
+  c_convert(model, path)
+
 
 if __name__=="__main__":
   main()
