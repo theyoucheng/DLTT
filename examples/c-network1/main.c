@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include "network.h"
 
 int main(int argc, char* argv[]) {
   float finput[784];
@@ -790,5 +791,15 @@ int main(int argc, char* argv[]) {
   finput[781]=0.0;
   finput[782]=0.0;
   finput[783]=0.0;
-  assert(3==network(finput));
+
+  float img[28][28][1];
+  int index = 0;
+  for (int i=0; i<28; i++)
+    for (int j=0; j<28; j++) {
+      img[i][j][0] = finput[index];
+      index ++;
+    }
+
+  int label = network(img);
+  assert(3==label);
 }
