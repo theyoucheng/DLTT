@@ -13,9 +13,9 @@ def c_convert(model, path=''):
   prog=''
 
   ##  input, we assume that channel is in behind
-  input_shape=model.layers[0].input.shape
   ##  uint8_t 'input[channel][row][column]'
   try:
+    input_shape=model.layers[0].input.shape
     channel=input_shape[3].value
     row=input_shape[1].value
     column=input_shape[2].value
@@ -174,7 +174,7 @@ def c_convert(model, path=''):
   else:
     prog+='  float finput[{0}];\n'.format(input_shape[1].value)
     for i in range(0, input_shape[1].value):
-        prog += '  finput[{0}]={1};\n'.format(i, inp[i])
+        prog += '  finput[{0}]={1};\n'.format(i, _inp[i])
   prog+='  printf(\"%d\",network(finput));\n'
 
   prog+='}\n'
